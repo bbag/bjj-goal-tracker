@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>BJJ Goals</title>
+        <link rel="stylesheet" href="bjj.css">
+        <script src="vue.min.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <h1>Goal: {{ classCountGoal }} BJJ Classes <span class="settings-icon" v-on:click="modalToggleSettings"></span></h1>
+            <div class="card" id="sectionList">
+                <div class="card-title" v-on:click="scrollToSection('sectionList')">
+                    <span>Jump To Section:</span>
+                </div>
+                <ul class="sections-list">
+                    <li v-on:click="scrollToSection('sectionProgress')">Progress</li>
+                    <li v-on:click="scrollToSection('sectionBreakdown')">Class Breakdown</li>
+                    <li v-on:click="scrollToSection('sectionClasses')">Classes Taken</li>
+                    <li v-on:click="scrollToSection('sectionFacts')">Fun Facts</li>
+                    <li v-on:click="scrollToSection('sectionCalendar')">Year At A Glance</li>
+                    <li v-on:click="scrollToSection('sectionInjuries')">Injury Heatmap</li>
+                </ul>
+            </div>
+            <div class="card" id="sectionProgress">
+                <div class="card-title" v-on:click="scrollToSection('sectionProgress')">
+                    <span>Progress:</span>
+                    <span class="note">{{ months[currentMonth - 1].month }} {{ currentDay }}, {{ currentYear }}</span>
+                </div>
+                <div class="header">
+                    <span>{{ currentYear }} Progress:</span>
+                    <span>{{ daysPassed }} / {{ totalDays }} ({{ progressPercentYear }}%)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-year" v-bind:style="{width: progressPercentYear + '%'}"></div>
+                </div>
+                <div class="header"><span>Goal Progress:</span><span>{{ classCountTotal }} / {{ classCountGoal }} ({{ progressPercentGoal }}%)</span></div>
+                <div class="progress-container">
+                    <div class="progress-gi" v-bind:style="{width: progressPercentGi + '%'}"></div>
+                    <div class="progress-nogi" v-bind:style="{width: progressPercentNoGi + '%'}"></div>
+                    <div class="progress-openmat" v-bind:style="{width: progressPercentOpenMat + '%'}"></div>
+                </div>
+                <div class="progress-key">
+                    <div>
+                        <span class="progress-key-gi"></span> GI
+                    </div>
+                    <div>
+                        <span class="progress-key-nogi"></span> NO-GI
+                    </div>
+                    <div>
+                        <span class="progress-key-openmat"></span> OPEN MAT
+                    </div>
+                </div>
+            </div>
+            <div class="card" id="sectionBreakdown">
+                <div class="card-title" v-on:click="scrollToSection('sectionBreakdown')">
+                    <span>Class Breakdown:</span>
+                </div>
+                <div class="donut-card">
+                    <svg class="donut-chart" viewBox="0 0 100 100">
+                        <g v-for="(segment, index) in donutValues">
+                            <circle fill="transparent" v-bind:cx="donutCx" v-bind:cy="donutCy" v-bind:r="donutRadius" v-bind:stroke="segment.color" v-bind:stroke-width="donutStrokeWidth"
+                                v-bind:stroke-dasharray="donutCircumference" v-bind:stroke-dashoffset="calcStrokeDashOffset(segment.value)" v-bind:style="{ transform: calcDonutSegmentRotation(index), transformOrigin: calcDonutSegmentOrientation() } ">
+                            </circle>
+                        </g>
+                    </svg>
+                    <div class="progress-key">
+                        <div>
+                            <span class="progress-key-gi"></span> Gi: {{ classCountGi }} ({{ classCountPercentGi }}%)
+                        </div>
+                        <div>
+                            <span class="progress-key-nogi"></span> No-Gi: {{ classCountNoGi }} ({{ classCountPercentNoGi }}%)
+                        </div>
+                        <div>
+                            <span class="progress-key-openmat"></span> Open Mat: {{ classCountOpenMat }} ({{ classCountPercentOpenMat }}%)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" id="sectionClasses">
+                <div class="card-title" v-on:click="scrollToSection('sectionClasses')">
+                    <span>Classes Taken:</span>
+                    <span class="note">Total: {{ classCountTotal }}</span>
+                </div>
+                <ul class="class-list">
+                    <li v-for="(item, index) in classes">
+                        <div>
+                            {{ months[item.month - 1].month }} {{ item.day }}, {{ item.year }} <span v-bind:class="classTypeTag(item.type)"></span> ({{ item.type}})
+                        </div>
+                        <div class="class-list-dots"></div>
+                        <img class="icon" src="icon-trash.svg" v-on:click="modalToggleRemoveClass(index)" />
+                    </li>
+                </ul>
+                <div class="add-class">
+                    <button v-on:click="modalToggleAddClass" class="btn">Add a class</button>
+                </div>
+            </div>
+            <div class="card" id="sectionFacts">
+                <div class="card-title" v-on:click="scrollToSection('sectionFacts')">
+                    <span>Fun Facts:</span>
+                </div>
+                <p>You're averaging 1 class every <span class="fun-fact">{{ averageDaysPerClass }}</span> days, or <span class="fun-fact">{{ averageClassesPerWeek }}</span> classes per week.</p>
+                <p>At this rate, you're on pace to reach <span class="fun-fact">{{ paceClassesForTheYear }}</span> classes this year.</p>
+                <p v-if="classCountGoal > classes.length">To reach your goal, you'll need to average <span class="fun-fact">{{ paceToReachGoal }}</span> classes each week for the rest of the year.</p>
+            </div>
+            <div class="card" id="sectionCalendar">
+                <div class="card-title" v-on:click="scrollToSection('sectionCalendar')">
+                    <span>This Year at a Glance:</span>
+                    <span class="note">{{ currentYear }}</span>
+                </div>
+                <div class="calendar">
+                    <div v-for="item in months" class="calendar-month">
+                        <div class="calendar-title">
+                            {{ item.month }}
+                        </div>
+                        <div class="calendar-days">
+                            <div class="calendar-day">S</div>
+                            <div class="calendar-day">M</div>
+                            <div class="calendar-day">T</div>
+                            <div class="calendar-day">W</div>
+                            <div class="calendar-day">T</div>
+                            <div class="calendar-day">F</div>
+                            <div class="calendar-day">S</div>
+                            <div v-for="n in item.offset" class="calendar-day"></div>
+                            <div v-for="n in item.days" class="calendar-day">
+                                <span class="day-current-month" v-bind:class="{ 'calendar-current-day': calendarCurrentDay(n, item.id) }">
+                                    <span v-if="calendarDayHasClass(n, item.id)" v-bind:class="calcCalendarDayType(n, item.id)"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" id="sectionInjuries">
+                <div class="card-title" v-on:click="scrollToSection('sectionInjuries')">
+                    <span>Injury Heatmap:</span>
+                    <span class="note">Injuries: 12</span>
+                </div>
+                <div class="injuries">
+                    <img class="injuries-svg" src="body-silhouette.svg" />
+                    <ul class="injuries-list">
+                        <li>Head</li>
+                        <li>Neck</li>
+                        <li>Back</li>
+                        <li>Elbow</li>
+                        <li>Shoulder</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    <span>To-Do's:</span>
+                </div>
+                <ul>
+                    <li>Styles for bars and donut if no class data is entered</li>
+                    <li>Scroll-to-section labels at the top</li>
+                    <li>Injury tracker (srsly)</li>
+                    <li>Key under calendar for current day and injury day</li>
+                </ul>
+            </div>
+            <div v-if="modalShownAddClass" class="modal-wrapper">
+                <div class="modal">
+                    <div class="modal-close" v-on:click="modalToggleAddClass"></div>
+                    <h2>Add Class</h2>
+                    <form action="">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <label for="input-day">Day:</label>
+                                    </td>
+                                    <td>
+                                        <input id="input-day" type="number" v-model.number="addClassDay" v-bind:class="{ 'input-error': inputHasError }">
+                                        <span class="input-error-message">{{ inputErrorMessage }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="input-month">Month:</label>
+                                    </td>
+                                    <td>
+                                        <select id="input-month" v-model="addClassMonth">
+                                            <option v-for="item in months" v-bind:value="item.id" v-bind:selected="inputSelectCheckCurrentMonth(item.month) ? true : false">{{ item.month }}</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="input-year">Year:</label>
+                                    </td>
+                                    <td>
+                                        <input id="input-year" type="number" v-model.number="addClassYear">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Type:
+                                    </td>
+                                    <td class="add-class-type-key">
+                                        <div>
+                                            <input id="add-class-type-gi" type="radio" name="add-class-type" value="gi" v-model="addClassType" checked>
+                                            <label for="add-class-type-gi">
+                                                <span class="radio-gi"></span>
+                                                GI
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input id="add-class-type-nogi" type="radio" name="add-class-type" value="no-gi" v-model="addClassType">
+                                            <label for="add-class-type-nogi">
+                                                <span class="radio-nogi"></span>
+                                                NO-GI
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input id="add-class-type-openmat" type="radio" name="add-class-type" value="open-mat" v-model="addClassType">
+                                            <label for="add-class-type-openmat">
+                                                <span class="radio-openmat"></span>
+                                                OPEN MAT
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                    <div class="modal-bottom-buttons">
+                        <button class="btn btn-primary" v-on:click="addClass('Class added!')">Add Class</button>
+                        <button class="btn" v-on:click="modalToggleAddClass">Close</button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="modalShownSettings" class="modal-wrapper">
+                <div class="modal">
+                    <div class="modal-close" v-on:click="modalToggleSettings"></div>
+                    <h2>Settings</h2>
+                    <p>Goal number of classes:</p>
+                    <input v-model="classCountGoal" type="number">
+                    <div class="modal-bottom-buttons">
+                        <button class="btn btn-primary" v-on:click="modalToggleSettings">Close</button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="modalShownRemoveClass" class="modal-wrapper">
+                <div class="modal">
+                    <div class="modal-close" v-on:click="modalToggleRemoveClass(0)"></div>
+                    <h2>Remove Class?</h2>
+                    <p>Are you sure you want to remove this class?</p>
+                    <p>{{ months[classes[removeClassIndex].month - 1].month }} {{ classes[removeClassIndex].day }}, {{ classes[removeClassIndex].year }} ({{ classes[removeClassIndex].type }})</p>
+                    <div class="modal-bottom-buttons">
+                        <button class="btn btn-warning" v-on:click="removeClass(removeClassIndex, 'Class removed.')">Delete</button>
+                        <button class="btn" v-on:click="modalToggleRemoveClass(0)">Close</button>
+                    </div>
+                </div>
+            </div>
+            <div class="confirmation-wrapper" v-bind:class="{ shown: confirmationShown }">
+                <div class="confirmation">
+                    {{ confirmationMessage }}
+                </div>
+            </div>
+        </div>
+    </body>
+    <script src="bjj.js"></script>
+</html>
