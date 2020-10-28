@@ -11,6 +11,7 @@ To-do:
 - [x] Reactive list of classes taken, with ability to add remove classes.
 - [x] Fun facts about the current goal trajectory. :)
 - [x] Yearly calendar showing dates and types of training done.
+- [ ] Setup app to use local storage to save/load newly entered/deleted classes.
 - [ ] Injury counter & heatmap on SVG body outline to see where I'm most breakable. :(
 - [ ] Proper styles for the progress bars when no training class data exists.
 - [ ] Color key under caledar.
