@@ -14,4 +14,4 @@ To-do:
 - [ ] Setup app to use local storage to save/load newly entered/deleted classes.
 - [ ] Injury counter & heatmap on SVG body outline to see where I'm most breakable. :(
 - [ ] Proper styles for the progress bars when no training class data exists.
-- [ ] Color key under caledar.
+- [ ] Color key under calendar.
